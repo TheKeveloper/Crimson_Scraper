@@ -2,6 +2,10 @@ function getRSSUrl(){
   return "http://www.thecrimson.com/feeds/section/news/"; 
 }
 
+function getSpreadsheetUrl(){
+  return "https://docs.google.com/spreadsheets/d/1gWAZjMHv9WCE-zqvuTcO9akwbGjgPpeRj0XlibspTs0/edit#gid=0";
+}
+
 function getTagItem(item, tag){
   const regex = new RegExp("<" + tag + ">" + "(.*?)<\/" + tag + ">", "g");
   const result = item.match(regex);
@@ -19,29 +23,56 @@ function RSSItem(itemStr){
   this.title = getTagItem(itemStr, "title");
   this.date = this.link.match(date_regex)[0].substring(8);
   this.description = getTagItem(itemStr, "description");
+  this.time = Utilities.formatDate(new Date(), "EST", "MM-dd-yyyy HH:mm:ss");
   this.authors = [];
   this.tags = [];
 }
 
-function readRSS() {
+function rssToArray(item){
+  return [item.time, item.date, item.link, item.title, item.authors.toString(), item.tags.toString(), item.description];
+}
+
+function scrape() {
+  var sheet = SpreadsheetApp.openByUrl(getSpreadsheetUrl()).getSheets()[0];
+  var values = sheet.getRange(2, 1, 1, 7).getValues()[0];
+  var prevUrl = values[2];
+  Logger.log(prevUrl);
   const item_regex = /<item>(.*?)<\/item>/g;
   const tag_regex = /<a href="\/tag\/(.*?)">/g;
-  const author_regex = /mailto:(.*?)@thecrimson/g
+  const author_regex = /\/writer\/\d+\/.*?\//g
   const rss = UrlFetchApp.fetch(getRSSUrl()).getContentText();
   const itemStrs = rss.match(item_regex);
   var rssItems = [];
   for(var i = 0; i < itemStrs.length; i++){
-    const item = new RSSItem(itemStrs[i]);
-    const article = UrlFetchApp.fetch(item.link).getContentText();
+    var item = new RSSItem(itemStrs[i]);
+    if(item.link == prevUrl){
+      break;
+    }
+    var article = UrlFetchApp.fetch(item.link).getContentText();
     item.tags = article.match(tag_regex);
     for(var j = 0; j < item.tags.length; j++){
       item.tags[j] = item.tags[j].substring(14, item.tags[j].length - 2);
     }
+    Logger.log(item.tags);
     item.authors = article.match(author_regex);
-    for(var j = 0; j < item.authors.length; j++){
-      item.authors[j] = item.authors[j].substring(7, item.authors[j].length - 12); 
+    if(item.authors != null){
+      for(var j = 0; j < item.authors.length; j++){
+        item.authors[j] = item.authors[j].substring(16, item.authors[j].length - 1).replace(/%20/g, "");
+      }
+    }
+    else{
+      item.authors = [];
     }
     rssItems.push(item);
   }
-  Logger.log(rssItems);
+  var newRows = [];
+  for(var i = 0; i < rssItems.length; i++){
+    newRows.push(rssToArray(rssItems[i]));
+  }
+  if(newRows.length > 0){
+    sheet.insertRowsAfter(1, newRows.length);
+    sheet.getRange(2, 1, newRows.length, 7).setValues(newRows);
+  }
+  console.log("Added " + newRows.length + " new rows");
+  Logger.log("Added " + newRows.length + " new rows");
 }
