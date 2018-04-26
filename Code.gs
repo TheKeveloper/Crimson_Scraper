@@ -32,6 +32,10 @@ function rssToArray(item){
   return [item.time, item.date, item.link, item.title, item.authors.toString(), item.tags.toString(), item.description];
 }
 
+function strToArr(str, sep){
+  return str.split(sep).filter(function(item, pos, self){return self.indexOf(item) == pos && item != ""});
+}
+
 function scrape() {
   var sheet = SpreadsheetApp.openByUrl(getSpreadsheetUrl()).getSheets()[0];
   var values = sheet.getRange(2, 1, 1, 7).getValues()[0];
@@ -84,7 +88,7 @@ function getColumnStrings(sheet, strRange, sep){
   //Flatten array
   for(var i = 0; i < values.length; i++){
     //Split string to array, remove the duplicates, then concat
-    result = result.concat(values[i][0].split(sep).filter(function(item, pos, self){return self.indexOf(item) == pos && item != ""}));
+    result = result.concat(strToArr(values[i][0], sep));
   }
   return result;
 }
