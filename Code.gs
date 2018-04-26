@@ -36,7 +36,6 @@ function scrape() {
   var sheet = SpreadsheetApp.openByUrl(getSpreadsheetUrl()).getSheets()[0];
   var values = sheet.getRange(2, 1, 1, 7).getValues()[0];
   var prevUrl = values[2];
-  Logger.log(prevUrl);
   const item_regex = /<item>(.*?)<\/item>/g;
   const tag_regex = /<a href="\/tag\/(.*?)">/g;
   const author_regex = /\/writer\/\d+\/.*?\//g
