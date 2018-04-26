@@ -75,3 +75,46 @@ function scrape() {
   console.log("Added " + newRows.length + " new rows");
   Logger.log("Added " + newRows.length + " new rows");
 }
+
+function getColumnStrings(sheet, strRange, sep){
+  var values = sheet.getRange(strRange).getValues();
+  //Remove column title
+  values.splice(0, 1);
+  var result = [];
+  //Flatten array
+  for(var i = 0; i < values.length; i++){
+    //Split string to array, remove the duplicates, then concat
+    result = result.concat(values[i][0].split(sep).filter(function(item, pos, self){return self.indexOf(item) == pos && item != ""}));
+  }
+  return result;
+}
+
+function countOccurrences(arr){
+  var dict = {};
+  arr.forEach(function(elt){
+    if (elt in dict){
+      dict[elt] += 1;
+    }
+    else{
+      dict[elt] = 1;
+    }
+  });
+  
+  var result = [];
+  for(var key in dict){
+    result.push([key, dict[key]]);
+  }
+  return result;
+}
+function aggregateExisting(){
+  var spreadsheet = SpreadsheetApp.openByUrl(getSpreadsheetUrl());
+  var sheet = SpreadsheetApp.openByUrl(getSpreadsheetUrl()).getSheets()[0];
+  var tags = getColumnStrings(sheet, "F:F", ",");
+  var authors = getColumnStrings(sheet, "E:E", ",");
+  var tagSheet = spreadsheet.getSheetByName("Tags");
+  var tagCounts = countOccurrences(tags);
+  var authorCounts = countOccurrences(authors);
+  tagSheet.getRange(2, 1, tagCounts.length, 2).setValues(tagCounts);
+  var authorSheet = spreadsheet.getSheetByName("Authors");
+  authorSheet.getRange(2, 1, authorCounts.length, 2).setValues(authorCounts);
+}
